@@ -33,11 +33,11 @@
             color: #4a4a4a;
         }
 
-        /* 軽量化：SVGフィルターを外し、CSSのぼかしと変形だけで水彩の滲みを表現 */
+        /* 軽量化：CSSのぼかしと変形だけで水彩の滲みを表現 */
         .watercolor-blob {
             mix-blend-mode: multiply;
-            filter: blur(40px); /* 輪郭を大きくぼかす */
-            border-radius: 45% 55% 65% 35% / 40% 60% 40% 60%; /* 有機的なアメーバ状の形 */
+            filter: blur(40px);
+            border-radius: 45% 55% 65% 35% / 40% 60% 40% 60%;
         }
 
         /* 飛沫（スプラッター）レイヤー */
@@ -105,7 +105,6 @@
 
         .title-shadow {
             text-shadow: 0 4px 20px rgba(255,255,255,0.9), 0 0 10px rgba(255,255,255,0.7);
-            cursor: default;
             user-select: none;
         }
 
@@ -132,28 +131,23 @@
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased relative">
 
-    <!-- アートな水彩パレット風背景（CSSのみで軽量化） -->
+    <!-- アートな水彩パレット風背景（CSS軽量版） -->
     <div class="fixed inset-0 z-[-1] overflow-hidden bg-white pointer-events-none">
         <div class="absolute inset-0 flex items-center justify-center">
             <div class="w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] bg-gray-50 rounded-full blur-[100px] opacity-50"></div>
         </div>
-        <!-- 水彩の色だまり -->
         <div class="absolute top-[5%] left-[5%] w-[35vw] h-[35vw] max-w-[400px] max-h-[400px] bg-gradient-to-br from-orange-400 to-yellow-400 watercolor-blob opacity-70 transform -rotate-12"></div>
         <div class="absolute top-[10%] right-[5%] w-[40vw] h-[40vw] max-w-[450px] max-h-[450px] bg-gradient-to-bl from-cyan-400 to-blue-500 watercolor-blob opacity-60 transform rotate-12"></div>
         <div class="absolute bottom-[10%] left-[10%] w-[30vw] h-[30vw] max-w-[350px] max-h-[350px] bg-gradient-to-tr from-rose-500 to-red-400 watercolor-blob opacity-65 transform rotate-45"></div>
         <div class="absolute bottom-[5%] right-[10%] w-[35vw] h-[35vw] max-w-[400px] max-h-[400px] bg-gradient-to-tl from-purple-500 to-fuchsia-400 watercolor-blob opacity-70 transform -rotate-45"></div>
-        
-        <!-- 飛沫レイヤー -->
         <div class="splatter-layer splatter-orange"></div>
         <div class="splatter-layer splatter-blue"></div>
         <div class="splatter-layer splatter-red"></div>
         <div class="splatter-layer splatter-purple"></div>
-        
-        <!-- キャンバス質感 -->
         <div class="absolute inset-0 paper-texture mix-blend-multiply opacity-80"></div>
     </div>
 
-    <!-- メインヘッダー（閲覧専用） -->
+    <!-- メインヘッダー -->
     <header class="pt-16 pb-6 md:pb-8 px-4 text-center relative z-10">
         <!-- タイトル -->
         <h1 class="text-3xl md:text-5xl font-serif font-bold tracking-widest text-primary mb-6 md:mb-8 inline-block drop-shadow-md title-shadow" id="site-title">私たちの日常</h1>
@@ -161,15 +155,16 @@
         <!-- アイコン画像 -->
         <div class="relative w-24 h-24 md:w-36 md:h-36 mx-auto group">
             <div class="w-full h-full rounded-full overflow-hidden shadow-xl border-[4px] md:border-[5px] border-white bg-white">
-                <img id="profile-icon" src="" alt="Profile Icon" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?q=80&w=400&auto=format&fit=crop'">
+                <img id="profile-icon" src="./FCD34416-7E55-4C15-B0E4-B613D87FA0A5.png" alt="Profile Icon" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?q=80&w=400&auto=format&fit=crop'">
             </div>
         </div>
     </header>
 
     <main class="flex-grow max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 w-full relative z-10" id="main-content">
-        <!-- グリッドコンテナ（スマホ2列、PC3列） -->
+        <!-- グリッドコンテナ -->
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-6 sm:gap-x-4 sm:gap-y-8 md:gap-x-6 md:gap-y-10" id="items-container">
-            <div class="col-span-full text-center py-20 text-gray-400">
+            <!-- 読み込み中の表示 -->
+            <div class="col-span-full text-center py-20 text-gray-400" id="loading-indicator">
                 <i class="fas fa-spinner fa-spin text-3xl mb-2"></i>
                 <p class="text-sm">データを読み込んでいます...</p>
             </div>
@@ -182,7 +177,7 @@
         </div>
     </footer>
 
-    <!-- Firebase SDK (読み込み専用) -->
+    <!-- Firebase SDKのインポートとアプリのロジック (閲覧用) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -196,10 +191,30 @@
         let itemsData = [];
         let currentSlideStates = {};
 
+        // ★ 初期データ
+        const defaultItemsData = [
+            {
+                id: "item_1",
+                order: 0,
+                title: "週末のカフェ巡りデート",
+                isNew: true,
+                slides: [
+                    { image: "./07464D97-8ECF-4A43-9C81-8FE1C436DCD5.jpg", text: "春の新作リネンブラウス", url: "#affiliate-blouse" },
+                    { image: "./88DA969F-D437-4DC4-97BD-38B9EB21635F.png", text: "シルエットが綺麗なスカート", url: "#affiliate-skirt" },
+                    { image: "./BC3FF25E-C4C9-406C-AD2E-FE94AF8098F7.jpg", text: "合わせやすいパンプス", url: "#affiliate-shoes" },
+                    { image: "./6E1F9E3D-C6B9-4E3C-9086-F278F393F689.jpg", text: "お気に入りのアクセサリー", url: "#affiliate-acc" } 
+                ]
+            }
+        ];
+
         function getCollectionRef(colName) { return collection(db, 'artifacts', appId, 'public', 'data', colName); }
         function getDocRef(colName, docId) { return doc(db, 'artifacts', appId, 'public', 'data', colName, docId); }
 
-        if (firebaseConfig) {
+        if (!firebaseConfig) {
+            console.log("データベースが見つからないため、仮のデータを表示します。");
+            itemsData = [...defaultItemsData];
+            setTimeout(renderItems, 500);
+        } else {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             db = getFirestore(app);
@@ -217,32 +232,53 @@
                     currentUser = user;
                     if (user) setupRealtimeListeners();
                 });
+            }).catch(e => {
+                console.error("認証エラー", e);
+                itemsData = [...defaultItemsData];
+                renderItems();
             });
         }
 
         function setupRealtimeListeners() {
             if (!currentUser) return;
-            // サイト設定の読み込み
+            
             onSnapshot(getDocRef('settings', 'main'), (docSnap) => {
                 if (docSnap.exists()) {
                     const siteData = docSnap.data();
-                    document.getElementById('site-title').innerText = siteData.title || '私たちの日常';
-                    document.title = siteData.title || '私たちの日常';
-                    document.getElementById('footer-title').innerText = siteData.footerTitle || '私たちの日常';
-                    document.getElementById('profile-icon').src = siteData.iconUrl || '';
+                    const siteTitleEl = document.getElementById('site-title');
+                    const footerTitleEl = document.getElementById('footer-title');
+                    
+                    if(siteTitleEl) {
+                        siteTitleEl.innerText = siteData.title || '私たちの日常';
+                        document.title = siteData.title || '私たちの日常';
+                    }
+                    if(footerTitleEl) {
+                        footerTitleEl.innerText = siteData.footerTitle || '私たちの日常';
+                    }
+                    if(siteData.iconUrl) {
+                        document.getElementById('profile-icon').src = siteData.iconUrl;
+                    }
                 }
             }, (error) => console.error("Settings error:", error));
 
-            // コーデアイテムの読み込み
             onSnapshot(getCollectionRef('items'), (snapshot) => {
                 let loadedItems = [];
                 snapshot.forEach(doc => loadedItems.push({ id: doc.id, ...doc.data() }));
                 
-                loadedItems.sort((a, b) => (b.order || 0) - (a.order || 0)); // 降順ソート
-                loadedItems.forEach(item => { item.currentSlide = currentSlideStates[item.id] !== undefined ? currentSlideStates[item.id] : 0; });
-                itemsData = loadedItems;
+                if (loadedItems.length === 0) {
+                    itemsData = [...defaultItemsData];
+                    renderItems();
+                } else {
+                    loadedItems.sort((a, b) => (b.order || 0) - (a.order || 0));
+                    loadedItems.forEach(item => { item.currentSlide = currentSlideStates[item.id] !== undefined ? currentSlideStates[item.id] : 0; });
+                    itemsData = loadedItems;
+                    renderItems();
+                }
+            }, (error) => {
+                console.error("Items error:", error);
+                itemsData = [...defaultItemsData];
                 renderItems();
-            }, (error) => console.error("Items error:", error));
+            });
         }
 
         function renderItems() {
@@ -254,11 +290,12 @@
             
             container.innerHTML = '';
             itemsData.forEach((item) => {
-                let validSlides = item.slides.filter(s => s.image && s.image.trim() !== '').slice(0, 4);
+                // エラー防止：データが欠損していても安全に読み込む処理
+                let validSlides = (item.slides || []).filter(s => s && s.image && typeof s.image === 'string' && s.image.trim() !== '').slice(0, 4);
                 if (validSlides.length === 0) validSlides = [{ image: "https://placehold.co/600x800/eeeeee/999999?text=No+Image", text: "アイテムを追加してください", url: "#" }];
-                if (item.currentSlide >= validSlides.length) item.currentSlide = 0;
+                if (item.currentSlide == null || item.currentSlide >= validSlides.length || item.currentSlide < 0) item.currentSlide = 0;
                 
-                const activeSlide = validSlides[item.currentSlide];
+                const activeSlide = validSlides[item.currentSlide] || validSlides[0] || {};
                 const itemId = `item-${item.id}`;
                 
                 const itemHTML = `
@@ -278,7 +315,7 @@
                             <div class="flex h-full w-full carousel-inner" id="slider-${item.id}" style="transform: translateX(-${item.currentSlide * 100}%);">
                                 ${validSlides.map((slide) => `
                                     <div class="w-full h-full flex-shrink-0 relative">
-                                        <img src="${slide.image}" alt="Fashion Style" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x800/f8d7da/721c24?text=Image+Error'">
+                                        <img src="${slide?.image || ''}" alt="Fashion Style" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x800/f8d7da/721c24?text=Image+Error'">
                                         <div class="absolute bottom-0 w-full h-12 md:h-20 bg-gradient-to-t from-black/40 to-transparent"></div>
                                     </div>
                                 `).join('')}
@@ -300,9 +337,9 @@
                                 <i class="fas fa-hand-point-down ml-1.5 animate-bounce"></i>
                             </div>
                             
-                            <a href="${activeSlide.url}" id="link-anchor-${item.id}" class="affiliate-link group flex items-center justify-center w-11/12 bg-white/90 hover:bg-accent border border-gray-200 hover:border-accent rounded-full py-2.5 md:py-3 px-3 shadow-sm hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300" target="_blank" rel="noopener noreferrer">
+                            <a href="${activeSlide?.url || '#'}" id="link-anchor-${item.id}" class="affiliate-link group flex items-center justify-center w-11/12 bg-white/90 hover:bg-accent border border-gray-200 hover:border-accent rounded-full py-2.5 md:py-3 px-3 shadow-sm hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300" target="_blank" rel="noopener noreferrer">
                                 <i class="fas fa-tshirt text-[10px] md:text-xs text-accent group-hover:text-white mr-2 transition-colors"></i>
-                                <span class="fade-transition text-[11px] md:text-sm font-serif font-bold text-gray-700 group-hover:text-white leading-snug truncate" id="link-text-${item.id}">${activeSlide.text || 'リンクを設定'}</span>
+                                <span class="fade-transition text-[11px] md:text-sm font-serif font-bold text-gray-700 group-hover:text-white leading-snug truncate" id="link-text-${item.id}">${activeSlide?.text || 'リンクを設定'}</span>
                                 <i class="fas fa-chevron-right text-[8px] md:text-[10px] text-gray-300 group-hover:text-white/80 ml-auto md:ml-2 transition-colors"></i>
                             </a>
                         </div>
@@ -315,7 +352,7 @@
         window.moveSlide = function(itemId, direction) {
             const item = itemsData.find(i => i.id === itemId);
             if (!item) return;
-            const validSlides = item.slides.filter(s => s.image && s.image.trim() !== '').slice(0, 4);
+            const validSlides = (item.slides || []).filter(s => s && s.image && typeof s.image === 'string' && s.image.trim() !== '').slice(0, 4);
             const maxSlides = validSlides.length;
             if (maxSlides <= 1) return;
 
@@ -337,7 +374,7 @@
                Array.from(indicators.children).forEach((dot, i) => { dot.className = `w-1 h-1 md:w-1.5 md:h-1.5 rounded-full transition-all duration-300 shadow-sm ${i === newSlide ? 'bg-white w-3 md:w-4' : 'bg-white/50'}`; });
             }
 
-            const activeSlideData = validSlides[newSlide];
+            const activeSlideData = validSlides[newSlide] || {};
             const linkAnchor = document.getElementById(`link-anchor-${itemId}`);
             const linkTextEl = document.getElementById(`link-text-${itemId}`);
 
